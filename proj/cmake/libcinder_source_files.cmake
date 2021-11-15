@@ -64,14 +64,10 @@ list( APPEND SRC_SET_CINDER
 	${CINDER_SRC_DIR}/cinder/Xml.cpp
 )
 
-if( ( NOT CINDER_LINUX ) AND ( NOT CINDER_ANDROID ) )
-	list( APPEND SRC_SET_CINDER
-		${CINDER_SRC_DIR}/cinder/Capture.cpp
-	)
-endif()
-if( ( NOT CINDER_COCOA_TOUCH ) AND ( NOT CINDER_ANDROID ) )
+if( NOT CINDER_ANDROID )
 	list( APPEND SRC_SET_CINDER
 		${CINDER_SRC_DIR}/cinder/Serial.cpp
+		${CINDER_SRC_DIR}/cinder/Capture.cpp
 	)
 endif()
 
