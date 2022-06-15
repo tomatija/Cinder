@@ -1,9 +1,60 @@
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
+#include "cinder/Rand.h"
+#include "cinder/app/MouseEvent.h"
+#include "imgui/imgui.h"
 
 using namespace ci;
 using namespace ci::app;
+
+struct color {
+	float r;
+	float g;
+	float b;
+};
+
+enum class Shapes {
+	CIRCLE,
+	SQUARE,
+	RECTANGLE
+};
+
+class Shape {
+public:
+	vec2 location;
+	color myColor;
+	Shapes shape;
+};
+
+class Circle : public Shape {
+public:
+	float radius;
+
+	Circle(vec2 loc, Shapes s) {
+		location = loc;
+		shape = s;
+
+		myColor.r = randFloat(1);
+		myColor.g = randFloat(1);
+		myColor.b = randFloat(1);
+
+		radius = randFloat(100);
+	}
+};
+
+class Square : public Shape {
+public:
+	float size;
+};
+
+class Rectangle : public Shape {
+public:
+	float width;
+	float height;
+};
+
+
 
 // We'll create a new Cinder Application by deriving from the App class.
 class BasicApp : public App {
@@ -21,20 +72,39 @@ class BasicApp : public App {
 	// Cinder will call 'draw' each time the contents of the window need to be redrawn.
 	void draw() override;
 
+	~BasicApp() {
+		for (const Circle* circle : shapePositions) {
+			delete circle;
+		}
+	}
+
   private:
 	// This will maintain a list of points which we will draw line segments between
-	std::vector<vec2> mPoints;
+	std::vector<Circle*> shapePositions;
 };
 
 void prepareSettings( BasicApp::Settings* settings )
 {
 	settings->setMultiTouchEnabled( false );
+
 }
 
 void BasicApp::mouseDown( MouseEvent event )
 {
-	// Store the current mouse position in the list.
-	mPoints.push_back( event.getPos() );
+	if (event.isRightDown()) {
+		Circle* circleToDelete = NULL;
+		for (Circle* circle : shapePositions) {
+			if ((pow((circle->location.x - event.getX()), 2) + pow((circle->location.y - event.getY()), 2)) <= pow(circle->radius, 2)) 
+			{
+				circleToDelete = circle;
+			}
+		}
+		shapePositions.erase(std::remove(shapePositions.begin(), shapePositions.end(), circleToDelete), shapePositions.end());
+	}
+	else {
+		shapePositions.push_back(new Circle(event.getPos(), Shapes::CIRCLE));
+	}
+	
 }
 
 void BasicApp::keyDown( KeyEvent event )
@@ -45,7 +115,7 @@ void BasicApp::keyDown( KeyEvent event )
 	}
 	else if( event.getCode() == KeyEvent::KEY_SPACE ) {
 		// Clear the list of points when the user presses the space bar.
-		mPoints.clear();
+		shapePositions.clear();
 	}
 	else if( event.getCode() == KeyEvent::KEY_ESCAPE ) {
 		// Exit full screen, or quit the application, when the user presses the ESC key.
@@ -54,7 +124,27 @@ void BasicApp::keyDown( KeyEvent event )
 		else
 			quit();
 	}
+	else if (event.getChar() == 'w' && shapePositions.size() > 0) {
+			Circle* currentCircle = shapePositions.back();
+			currentCircle->location.y -= 5;
+	}
+	else if (event.getChar() == 's' && shapePositions.size() > 0) {
+		Circle* currentCircle = shapePositions.back();
+		currentCircle->location.y += 5;
+	}
+	else if (event.getChar() == 'a' && shapePositions.size() > 0) {
+		Circle* currentCircle = shapePositions.back();
+		currentCircle->location.x -= 5;
+	}
+	else if (event.getChar() == 'd' && shapePositions.size() > 0) {
+		Circle* currentCircle = shapePositions.back();
+		currentCircle->location.x += 5;
+	}
+	
+
 }
+
+
 
 void BasicApp::draw()
 {
@@ -65,16 +155,18 @@ void BasicApp::draw()
 	// Set the current draw color to orange by setting values for
 	// red, green and blue directly. Values range from 0 to 1.
 	// See also: gl::ScopedColor
-	gl::color( 1.0f, 1.0f, 0.25f );
+	
 
 	// We're going to draw a line through all the points in the list
 	// using a few convenience functions: 'begin' will tell OpenGL to
 	// start constructing a line strip, 'vertex' will add a point to the
 	// line strip and 'end' will execute the draw calls on the GPU.
 	gl::begin( GL_LINE_STRIP );
-	for( const vec2 &point : mPoints ) {
-		gl::vertex( point );
+	for( const Circle * circle : shapePositions) {
+		gl::color(circle->myColor.r, circle->myColor.g, circle->myColor.b);
+		gl::drawSolidCircle(circle->location, circle->radius);
 	}
+
 	gl::end();
 }
 
